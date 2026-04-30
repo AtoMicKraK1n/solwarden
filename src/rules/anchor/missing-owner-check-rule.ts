@@ -1,5 +1,16 @@
 import type { Rule } from "../../types/rule";
-import { createFinding, nearbyHasPattern } from "../utils";
+import {
+  createFinding,
+  getFunctionScopeByIndex,
+  getLineNumberFromIndex,
+  nearbyHasPattern,
+} from "../utils";
+
+const DESERIALIZE_REGEX =
+  /\b(try_from_slice\s*\(|from_account_info\s*\(|try_deserialize(?:_unchecked)?\s*\()/g;
+
+const OWNER_CHECK_REGEX =
+  /\b(\.owner\s*(==|!=)|owner\s*(==|!=)|require_keys_eq!\s*\([^)]*owner|Account\s*<\s*'info\s*,)/;
 
 export const missingOwnerCheckRule: Rule = {
   id: "SW002",
@@ -7,30 +18,39 @@ export const missingOwnerCheckRule: Rule = {
   description:
     "Detects likely deserialization paths without nearby account owner validation.",
   severity: "critical",
+  fixGuidance:
+    "Verify account.owner matches expected program before deserializing account data.",
+
   match(file) {
     const findings = [];
     const lines = file.source.split("\n");
 
-    const deserializeRegex =
-      /(try_from_slice\s*\(|from_account_info\s*\(|try_deserialize\s*\()/g;
-
-    for (const match of file.source.matchAll(deserializeRegex)) {
+    for (const match of file.source.matchAll(DESERIALIZE_REGEX)) {
       const idx = match.index ?? 0;
-      const lineNo = file.source.slice(0, idx).split("\n").length - 1;
-      const hasOwnerCheckNearby = nearbyHasPattern(
+      const lineNo = getLineNumberFromIndex(file.source, idx);
+
+      const hasLocalOwnerCheck = nearbyHasPattern(
         lines,
         lineNo,
-        8,
-        /(\.owner\s*(==|!=)|owner\s*(==|!=)|Account<'info,\s*\w+>)/,
+        10,
+        OWNER_CHECK_REGEX,
       );
 
-      if (!hasOwnerCheckNearby) {
+      const fnScope = getFunctionScopeByIndex(file.source, idx);
+      const hasFnScopeOwnerCheck = fnScope
+        ? new RegExp(
+            OWNER_CHECK_REGEX.source,
+            OWNER_CHECK_REGEX.flags.replace("g", ""),
+          ).test(fnScope.text)
+        : false;
+
+      if (!hasLocalOwnerCheck && !hasFnScopeOwnerCheck) {
         findings.push(
           createFinding({
             ruleId: "SW002",
             severity: "critical",
             message:
-              "Deserialization found without nearby owner validation. This can allow untrusted account data parsing.",
+              "Deserialization found without owner validation in nearby or function scope.",
             file: file.path,
             source: file.source,
             index: idx,
@@ -43,5 +63,4 @@ export const missingOwnerCheckRule: Rule = {
 
     return findings;
   },
-  fixGuidance: "",
 };
