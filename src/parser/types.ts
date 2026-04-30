@@ -12,3 +12,8 @@ export interface Rule {
   fixGuidance: string;
   match: (file: ParsedFile, projectIndex?: ProjectIndex) => Finding[];
 }
+
+export interface ExtractOptions {
+  include?: string[];
+  ignore?: string[];
+}

@@ -16,8 +16,9 @@ program
   .description("Scan a workspace path")
   .option("-f, --format <format>", "output format: human | json", "human")
   .option("-r, --rule <id>", "only run a specific rule by id")
+  .option("--include-tests", "include files in tests/ and *_test.rs")
   .action(
-    async (pathArg: string, options: { format: string; rule?: string }) => {
+    async (pathArg: string, options: { format: string; rule?: string; includeTests?: boolean }) => {
       const format = String(options.format).toLowerCase();
 
       if (format !== "human" && format !== "json") {
@@ -37,7 +38,10 @@ program
         }
       }
 
-      const result = await scanPath(pathArg, { ruleId: options.rule });
+      const result = await scanPath(pathArg, {
+        ruleId: options.rule,
+        includeTests: options.includeTests ?? false,
+      });
 
       if (format === "json") {
         console.log(reportJson(result));

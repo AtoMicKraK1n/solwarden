@@ -62,6 +62,15 @@ sentio scan . --format human
 sentio scan . --format json
 ```
 
+### Test context
+
+By default, Sentio suppresses findings from `tests/`, `*_test.rs`, and `test.rs` files to reduce false positives in non-production code.
+
+```bash
+# Include test-context findings explicitly
+sentio scan . --include-tests
+```
+
 ### List rules
 
 ```bash

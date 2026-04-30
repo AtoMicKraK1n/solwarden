@@ -6,6 +6,7 @@ import { createRuleRegistry } from "./rule-engine/registry";
 
 export interface ScanPathOptions {
   ruleId?: string;
+  includeTests?: boolean;
 }
 
 export async function scanPath(targetPath: string, options: ScanPathOptions = {}) {
@@ -14,7 +15,9 @@ export async function scanPath(targetPath: string, options: ScanPathOptions = {}
   const selectedRules = options.ruleId
     ? rules.filter((rule) => rule.id === options.ruleId)
     : rules;
-  return runRules(files, selectedRules);
+  return runRules(files, selectedRules, {
+    includeTests: options.includeTests ?? false,
+  });
 }
 
 export { reportHuman, reportJson, createRuleRegistry };

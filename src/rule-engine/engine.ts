@@ -6,11 +6,17 @@ import { buildProjectIndex } from "../parser/project-index";
 
 const SEVERITY_BUCKETS: Severity[] = ["low", "medium", "high", "critical"];
 
-export function runRules(files: ParsedFile[], rules: Rule[]): ScanResult {
-  const findings: Finding[] = [];
-  const projectIndex = buildProjectIndex(files);
+export interface RunRulesOptions {
+  includeTests?: boolean;
+}
 
-  for (const file of files) {
+export function runRules(files: ParsedFile[], rules: Rule[], options: RunRulesOptions = {}): ScanResult {
+  const findings: Finding[] = [];
+  const includeTests = options.includeTests ?? false;
+  const effectiveFiles = includeTests ? files : files.filter((f) => !f.isTestFile);
+  const projectIndex = buildProjectIndex(effectiveFiles);
+
+  for (const file of effectiveFiles) {
     for (const rule of rules) {
       const matches = rule.match(file, projectIndex);
       findings.push(...matches);
