@@ -1,4 +1,5 @@
 import type { Rule } from "../../types/rule";
+import { resolveNearestCtxAccountsField } from "../../parser/anchor-constraints";
 import {
   createFinding,
   getFunctionScopeByIndex,
@@ -44,7 +45,16 @@ export const missingOwnerCheckRule: Rule = {
           ).test(fnScope.text)
         : false;
 
-      if (!hasLocalOwnerCheck && !hasFnScopeOwnerCheck) {
+      const nearest = resolveNearestCtxAccountsField(
+        file.source,
+        idx,
+        file.anchorAccounts,
+      );
+      const anchorMitigated =
+        !!nearest &&
+        (nearest.constraints.owner || nearest.constraints.hasConstraint);
+
+      if (!hasLocalOwnerCheck && !hasFnScopeOwnerCheck && !anchorMitigated) {
         findings.push(
           createFinding({
             ruleId: "SW002",

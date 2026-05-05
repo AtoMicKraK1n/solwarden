@@ -6,47 +6,56 @@ export const missingPdaSeedsBumpRule: Rule = {
   title: "Missing seeds + bump on PDA",
   severity: "high",
   description:
-    "Detects PDA-like account constraints that do not include both `seeds` and `bump`, which weakens deterministic PDA validation and can allow account substitution.",
+    "Detects PDA-like account field constraints that do not include both `seeds` and `bump`.",
   fixGuidance:
-    "For PDA accounts, use `#[account(seeds = [...], bump)]` (or `bump = <expr>`) and keep seed derivation tied to trusted inputs.",
+    "For PDA accounts, use `#[account(seeds = [...], bump)]` (or `bump = <expr>`) and keep derivation tied to trusted inputs.",
 
   match(file) {
     const findings = [];
 
-    // Match each #[account(...)] block
-    const accountAttrRegex = /#\s*\[\s*account\s*\(([\s\S]*?)\)\s*\]/g;
+    // Parse per-field attrs: (attrs) pub field: Type
+    const fieldRe =
+      /((?:\s*#\[[^\]]+\]\s*)*)\s*pub\s+([A-Za-z_]\w*)\s*:\s*([^,\n]+),?/g;
 
-    for (const match of file.source.matchAll(accountAttrRegex)) {
-      const fullAttr = match[0];
-      const inner = match[1] ?? "";
-      const idx = match.index ?? 0;
+    for (const fm of file.source.matchAll(fieldRe)) {
+      const attrs = fm[1] ?? "";
+      const fieldName = fm[2];
+      const idx = fm.index ?? 0;
 
-      // only consider PDA-like contexts
-      const pdaLike =
-        /\b(init|init_if_needed)\b/.test(inner) ||
-        /\bseeds\s*=/.test(inner) ||
-        /\bbump\b(?:\s*=)?/.test(inner);
+      const accountAttrs = [
+        ...attrs.matchAll(/#\s*\[\s*account\s*\(([\s\S]*?)\)\s*\]/g),
+      ];
+      if (accountAttrs.length === 0) continue;
 
-      if (!pdaLike) continue;
+      // Evaluate each #[account(...)] attached to this field
+      for (const am of accountAttrs) {
+        const inner = am[1] ?? "";
 
-      const hasSeeds = /\bseeds\s*=/.test(inner);
-      const hasBump = /\bbump\b(?:\s*=)?/.test(inner);
+        const pdaLike =
+          /\b(init|init_if_needed)\b/.test(inner) ||
+          /\bseeds\s*=/.test(inner) ||
+          /\bbump\b(?:\s*=)?/.test(inner);
 
-      if (hasSeeds && hasBump) continue;
+        if (!pdaLike) continue;
 
-      findings.push(
-        createFinding({
-          ruleId: "SW013",
-          severity: "high",
-          message:
-            "PDA-like account constraint is missing either `seeds` or `bump`. Enforce both to harden PDA derivation checks.",
-          file: file.path,
-          source: file.source,
-          index: idx,
-          fixGuidance:
-            "Use `#[account(seeds = [...], bump)]` (or `bump = <expr>`) for PDA accounts.",
-        }),
-      );
+        const hasSeeds = /\bseeds\s*=/.test(inner);
+        const hasBump = /\bbump\b(?:\s*=)?/.test(inner);
+
+        if (hasSeeds && hasBump) continue;
+
+        findings.push(
+          createFinding({
+            ruleId: "SW013",
+            severity: "high",
+            message: `PDA-like account constraint on \`${fieldName}\` is missing either \`seeds\` or \`bump\`.`,
+            file: file.path,
+            source: file.source,
+            index: idx,
+            fixGuidance:
+              "Use `#[account(seeds = [...], bump)]` (or `bump = <expr>`) for PDA fields.",
+          }),
+        );
+      }
     }
 
     return findings;

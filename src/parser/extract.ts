@@ -4,6 +4,7 @@ import { glob } from "glob";
 import type { ParsedFile } from "../types/parsed-file";
 import type { ExtractOptions } from "./types";
 import { sanitizeRustSource } from "./sanitize";
+import { collectAnchorAccountsIndex } from "./anchor-constraints";
 
 const DEFAULT_INCLUDE = ["**/*.rs"];
 const DEFAULT_IGNORE = ["**/node_modules/**", "**/target/**", "**/.git/**"];
@@ -42,11 +43,14 @@ export async function extractParsedFiles(
     rustFiles.map(async (filePath) => {
       const rawSource = await readFile(filePath, "utf8");
       const { source } = sanitizeRustSource(rawSource);
+      const anchorAccounts = collectAnchorAccountsIndex(source);
+
       return {
         path: filePath,
         rawSource,
         source,
         isTestFile: isTestFilePath(filePath),
+        anchorAccounts,
       } satisfies ParsedFile;
     }),
   );
