@@ -3,6 +3,7 @@ import type { ParsedFile } from "../types/parsed-file";
 import type { Rule } from "../types/rule";
 import type { ScanResult } from "../types/scan-result";
 import { buildProjectIndex } from "../parser/project-index";
+import { collectSuppressions, isSuppressed } from "../parser/supressions";
 
 const SEVERITY_BUCKETS: Severity[] = ["low", "medium", "high", "critical"];
 
@@ -10,16 +11,25 @@ export interface RunRulesOptions {
   includeTests?: boolean;
 }
 
-export function runRules(files: ParsedFile[], rules: Rule[], options: RunRulesOptions = {}): ScanResult {
+export function runRules(
+  files: ParsedFile[],
+  rules: Rule[],
+  options: RunRulesOptions = {},
+): ScanResult {
   const findings: Finding[] = [];
   const includeTests = options.includeTests ?? false;
-  const effectiveFiles = includeTests ? files : files.filter((f) => !f.isTestFile);
+  const effectiveFiles = includeTests
+    ? files
+    : files.filter((f) => !f.isTestFile);
   const projectIndex = buildProjectIndex(effectiveFiles);
 
   for (const file of effectiveFiles) {
+    const suppressions = collectSuppressions(file.rawSource);
+
     for (const rule of rules) {
       const matches = rule.match(file, projectIndex);
-      findings.push(...matches);
+      const filtered = matches.filter((f) => !isSuppressed(f, suppressions));
+      findings.push(...filtered);
     }
   }
 

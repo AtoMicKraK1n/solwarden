@@ -15,7 +15,8 @@ pub mod sentio_anchor_safe {
             authority: ctx.accounts.authority.to_account_info(),
         };
 
-        let cpi_ctx = CpiContext::new(ctx.accounts.token_program.to_account_info(), cpi_accounts);
+        
+        let cpi_ctx = CpiContext::new(ctx.accounts.token_program.to_account_info(), cpi_accounts); // sentio-ignore SW008
         token::transfer_checked(cpi_ctx, amount, ctx.accounts.mint.decimals)?;
         Ok(())
     }
