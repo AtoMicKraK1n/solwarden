@@ -8,4 +8,6 @@ export interface Finding {
   line: number;
   column: number;
   fixGuidance?: string;
+  confidence?: "low" | "medium" | "high";
+  mitigationEvidence?: string[];
 }

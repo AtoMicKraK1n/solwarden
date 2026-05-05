@@ -17,10 +17,14 @@ export function reportHuman(result: ScanResult): string {
 
   lines.push("", "Findings:");
   for (const finding of result.findings) {
+    const conf = finding.confidence ? ` confidence=${finding.confidence}` : "";
     lines.push(
-      `- [${finding.severity.toUpperCase()}] ${finding.ruleId} ${finding.file}:${finding.line}:${finding.column}`,
+      `- [${finding.severity.toUpperCase()}] ${finding.ruleId} ${finding.file}:${finding.line}:${finding.column}${conf}`,
       `  ${finding.message}`,
     );
+    if (finding.mitigationEvidence?.length) {
+      lines.push(`  mitigation: ${finding.mitigationEvidence.join(", ")}`);
+    }
   }
 
   return lines.join("\n");

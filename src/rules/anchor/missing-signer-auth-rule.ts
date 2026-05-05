@@ -1,5 +1,6 @@
 import type { Rule } from "../../types/rule";
 import { createFinding, nearbyHasPattern } from "../utils";
+import { confidenceFromMitigation, tierSeverity } from "../severity-tiering";
 
 export const missingSignerAuthRule: Rule = {
   id: "SW001",
@@ -14,10 +15,14 @@ export const missingSignerAuthRule: Rule = {
     const accountInfoAuthorityRegex =
       /\b(authority|admin|owner|payer)\w*\s*:\s*AccountInfo<'info>/gi;
     for (const match of file.source.matchAll(accountInfoAuthorityRegex)) {
+      // Non-breaking: still emit exactly as before
+      const hasPartialMitigation = false;
       findings.push(
         createFinding({
           ruleId: "SW001",
-          severity: "critical",
+          severity: tierSeverity({ base: "critical", hasPartialMitigation }),
+          confidence: confidenceFromMitigation({ hasPartialMitigation }),
+          mitigationEvidence: [],
           message:
             "Authority-like account uses AccountInfo<'info> instead of Signer<'info>, which can bypass signature checks.",
           file: file.path,
@@ -39,11 +44,16 @@ export const missingSignerAuthRule: Rule = {
         6,
         /\bis_signer\b/,
       );
+
+      // Non-breaking: emit only when no mitigation (same behavior)
       if (!hasSignerCheckNearby) {
+        const hasPartialMitigation = false;
         findings.push(
           createFinding({
             ruleId: "SW001",
-            severity: "critical",
+            severity: tierSeverity({ base: "critical", hasPartialMitigation }),
+            confidence: confidenceFromMitigation({ hasPartialMitigation }),
+            mitigationEvidence: [],
             message:
               "Pubkey comparison found without nearby signer check. Matching key alone is not authorization.",
             file: file.path,

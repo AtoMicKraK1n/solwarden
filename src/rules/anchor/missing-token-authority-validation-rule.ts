@@ -4,6 +4,7 @@ import {
   nearbyHasPattern,
   getFunctionScopeByIndex,
 } from "../utils";
+import { confidenceFromMitigation, tierSeverity } from "../severity-tiering";
 
 function getCtxAccountFieldsInFunction(scopeText: string): string[] {
   const out = new Set<string>();
@@ -40,29 +41,40 @@ export const missingTokenAuthorityValidationRule: Rule = {
         ) ||
         nearbyHasPattern(lines, lineNo, 12, /\b(is_signer|Signer<'info>)\b/);
 
-      let anchorMitigated = false;
+      let hasAnchorTokenAuthority = false;
+      let hasAnchorSignerOrRelation = false;
       const scope = getFunctionScopeByIndex(file.source, idx);
       if (scope) {
         const usedFields = getCtxAccountFieldsInFunction(scope.text);
-        anchorMitigated = usedFields.some((name) => {
+        for (const name of usedFields) {
           const f = file.anchorAccounts.fields.find(
             (x) => x.fieldName === name,
           );
-          return (
-            !!f &&
-            (f.constraints.tokenAuthority ||
-              f.constraints.isSigner ||
-              f.constraints.hasOne.length > 0 ||
-              f.constraints.hasConstraint)
-          );
-        });
+          if (!f) continue;
+          hasAnchorTokenAuthority =
+            hasAnchorTokenAuthority || f.constraints.tokenAuthority;
+          hasAnchorSignerOrRelation =
+            hasAnchorSignerOrRelation ||
+            f.constraints.isSigner ||
+            f.constraints.hasOne.length > 0 ||
+            f.constraints.hasConstraint;
+        }
       }
 
-      if (!hasAuthorityValidationNearby && !anchorMitigated) {
+      // Non-breaking: emit only when neither code nor anchor mitigation exists
+      const hasAnyMitigation =
+        hasAuthorityValidationNearby ||
+        hasAnchorTokenAuthority ||
+        hasAnchorSignerOrRelation;
+
+      if (!hasAnyMitigation) {
+        const hasPartialMitigation = false;
         findings.push(
           createFinding({
             ruleId: "SW010",
-            severity: "critical",
+            severity: tierSeverity({ base: "critical", hasPartialMitigation }),
+            confidence: confidenceFromMitigation({ hasPartialMitigation }),
+            mitigationEvidence: [],
             message:
               "Token operation detected without nearby authority/owner signer validation.",
             file: file.path,

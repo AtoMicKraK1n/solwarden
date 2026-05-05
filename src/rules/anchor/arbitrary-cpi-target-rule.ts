@@ -5,6 +5,7 @@ import {
   getLineNumberFromIndex,
   nearbyHasPattern,
 } from "../utils";
+import { confidenceFromMitigation, tierSeverity } from "../severity-tiering";
 
 const CPI_REGEX =
   /\binvoke_signed?\s*\(|\bCpiContext::new(?:_with_signer)?\s*\(|\btoken::[a-z_]+\s*\(/g;
@@ -44,11 +45,15 @@ export const arbitraryCpiTargetRule: Rule = {
           ).test(fnScope.text)
         : false;
 
+      // NON-BREAKING: only emit when neither mitigation exists (same as old behavior)
       if (!hasLocalMitigation && !hasFnScopeMitigation) {
+        const hasPartialMitigation = hasLocalMitigation || hasFnScopeMitigation;
         findings.push(
           createFinding({
             ruleId: "SW003",
-            severity: "high",
+            severity: tierSeverity({ base: "high", hasPartialMitigation }),
+            confidence: confidenceFromMitigation({ hasPartialMitigation }),
+            mitigationEvidence: [],
             message:
               "CPI call found without clear target program validation in nearby or function scope.",
             file: file.path,

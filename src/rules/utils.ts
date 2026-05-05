@@ -20,6 +20,8 @@ export function createFinding(params: {
   source: string;
   index: number;
   fixGuidance: string;
+  confidence?: "low" | "medium" | "high";
+  mitigationEvidence?: string[];
 }): Finding {
   const { line, column } = getLineAndColumn(params.source, params.index);
   return {
@@ -30,6 +32,8 @@ export function createFinding(params: {
     line,
     column,
     fixGuidance: params.fixGuidance,
+    confidence: params.confidence,
+    mitigationEvidence: params.mitigationEvidence,
   };
 }
 
