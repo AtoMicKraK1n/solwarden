@@ -77,6 +77,30 @@ sentio scan . --include-tests
 sentio rules list
 ```
 
+### Ignore specific findings inline (`sentio-ignore`)
+
+Use inline suppression comments when a finding is intentional and documented.
+
+```rust
+// sentio-ignore-next-line SW001
+if authority.key() == expected_authority {
+    // ...
+}
+
+let amount = amount as u64; // sentio-ignore SW005
+```
+
+Supported directives:
+
+- `// sentio-ignore SW001,SW007` → suppresses listed rules on the same line
+- `// sentio-ignore-next-line SW002` → suppresses listed rules on the next line
+
+Rules:
+
+- IDs must be `SW###` (comma-separated for multiple)
+- Invalid IDs inside comments are ignored
+- Prefer suppression only with a clear reason in review notes/PR context
+
 ## Rule IDs (SW = Solana Warden)
 
 `SW` means **Solana Warden rule**.

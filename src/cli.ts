@@ -8,7 +8,17 @@ const program = new Command();
 program
   .name("sentio")
   .description("Sentio CLI")
-  .version(pkg.version, "-v, --version", "show sentio version");
+  .version(pkg.version, "-v, --version", "show sentio version")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  sentio scan .
+  sentio scan . --format json
+  sentio scan . --rule SW001
+  sentio scan . --help
+`,
+  );
 
 program
   .command("scan")
@@ -17,6 +27,21 @@ program
   .option("-f, --format <format>", "output format: human | json", "human")
   .option("-r, --rule <id>", "only run a specific rule by id")
   .option("--include-tests", "include files in tests/ and *_test.rs")
+  .addHelpText(
+    "after",
+    `
+Ignore directives:
+  // sentio-ignore SW001,SW007
+    Suppresses listed rule IDs on the same line.
+
+  // sentio-ignore-next-line SW002
+    Suppresses listed rule IDs on the following line.
+
+Notes:
+  - Rule IDs must be comma-separated SW### values.
+  - Unknown/invalid IDs in directives are ignored.
+`,
+  )
   .action(
     async (pathArg: string, options: { format: string; rule?: string; includeTests?: boolean }) => {
       const format = String(options.format).toLowerCase();
