@@ -18,7 +18,7 @@
   </a>
 </p>
 
-SDK + CLI scanner for common Solana programs vulnerability patterns.
+CLI scanner for common Solana programs vulnerability patterns.
 
 Sentio helps you quickly scan Anchor/native Solana Rust code for risky patterns and get actionable findings with severity, file location, and fix guidance.
 
